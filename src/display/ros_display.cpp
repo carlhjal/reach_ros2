@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "waypoint_server/srv/get_waypoints.hpp"
 #include <reach_ros/display/ros_display.h>
 #include <reach_ros/utils.h>
 
@@ -28,7 +29,7 @@ const static std::string JOINT_STATES_TOPIC = "reach_joints";
 const static std::string MESH_MARKER_TOPIC = "collision_mesh";
 const static std::string NEIGHBORS_MARKER_TOPIC = "reach_neighbors";
 const static std::string INTERACTIVE_MARKER_TOPIC = "reach_int_markers";
-
+auto const logger = rclcpp::get_logger("display");
 namespace reach_ros
 {
 namespace display
@@ -42,6 +43,7 @@ ROSDisplay::ROSDisplay(std::string kinematic_base_frame, double marker_scale, bo
   , hue_high_score_(hue_high_score)
 {
   // utils::initROS();
+
   server_ = std::make_shared<interactive_markers::InteractiveMarkerServer>(INTERACTIVE_MARKER_TOPIC,
                                                                            reach_ros::utils::getNodeInstance());
   joint_state_pub_ =
@@ -50,6 +52,30 @@ ROSDisplay::ROSDisplay(std::string kinematic_base_frame, double marker_scale, bo
       MESH_MARKER_TOPIC, rclcpp::QoS(1).transient_local());
   neighbors_pub_ =
       reach_ros::utils::getNodeInstance()->create_publisher<visualization_msgs::msg::Marker>(NEIGHBORS_MARKER_TOPIC, 1);
+  waypoints_server_ = reach_ros::utils::getNodeInstance()->create_service<waypoint_server::srv::GetWaypoints>(
+        "get_waypoints",
+        std::bind(&ROSDisplay::getWaypointsCallback, this, std::placeholders::_1, std::placeholders::_2)
+  );
+}
+
+void ROSDisplay::getWaypointsCallback(const std::shared_ptr<waypoint_server::srv::GetWaypoints::Request> request,
+                          std::shared_ptr<waypoint_server::srv::GetWaypoints::Response> response)
+{
+  for (const auto &waypoint : waypoints_) {
+    // geometry_msgs::msg::Pose pose = Eigen::toMsg(waypoint);
+    geometry_msgs::msg::Pose pose = tf2::toMsg(waypoint);
+    // geometry_msgs::msg::Pose pose;
+    // pose.position.x = waypoint.translation().x();
+    // pose.position.y = waypoint.translation().y();
+    // pose.position.z = waypoint.translation().z();
+    // Eigen::Quaterniond q(waypoint.rotation());
+    // pose.orientation.x = q.x();
+    // pose.orientation.y = q.y();
+    // pose.orientation.z = q.z();
+    // pose.orientation.w = q.w();
+
+    response->waypoints.push_back(pose);
+  }
 }
 
 void ROSDisplay::showEnvironment() const
@@ -75,6 +101,8 @@ void ROSDisplay::showResults(const reach::ReachResult& db) const
   // Create a callback for when a marker is clicked on
   auto show_goal_cb = [this, db](const visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr& fb) {
     std::size_t idx = std::strtoul(fb->marker_name.c_str(), nullptr, 10);
+    auto test = db.at(idx).goal;
+    waypoints_.push_back(test);
     updateRobotPose(db.at(idx).goal_state);
   };
 

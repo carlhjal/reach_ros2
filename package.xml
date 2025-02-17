@@ -11,7 +11,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-
+  
   <depend>tf2_eigen</depend>
   <depend>interactive_markers</depend>
   <depend>moveit_core</depend>
@@ -23,6 +23,9 @@
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
+
+  <depend>geometry_msgs</depend> 
+  <depend>waypoint_server</depend>   
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -22,6 +22,8 @@
 #include <interactive_markers/interactive_marker_server.hpp>
 #include <visualization_msgs/msg/interactive_marker_feedback.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <waypoint_server/srv/get_waypoints.hpp>
 
 namespace reach_ros
 {
@@ -32,12 +34,12 @@ class ROSDisplay : public reach::Display
 public:
   ROSDisplay(std::string kinematic_base_frame, double marker_scale, bool use_full_color_range, float hue_low_score,
              float hue_high_score);
-
+  void getWaypointsCallback(const std::shared_ptr<waypoint_server::srv::GetWaypoints::Request> request,
+                            std::shared_ptr<waypoint_server::srv::GetWaypoints::Response> response);
   void showEnvironment() const override;
   void updateRobotPose(const std::map<std::string, double>& pose) const override;
   void showResults(const reach::ReachResult& db) const override;
   void showReachNeighborhood(const std::map<std::size_t, reach::ReachRecord>& neighborhood) const override;
-
   void setCollisionMarker(std::string collision_mesh_filename, const std::string collision_mesh_frame);
 
 protected:
@@ -47,12 +49,14 @@ protected:
   const float hue_low_score_;
   const float hue_high_score_;
   visualization_msgs::msg::Marker collision_marker_;
+  mutable std::vector<Eigen::Isometry3d> waypoints_;
 
   // ROS comoponents
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr mesh_pub_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr neighbors_pub_;
   std::shared_ptr<interactive_markers::InteractiveMarkerServer> server_;
+  rclcpp::Service<waypoint_server::srv::GetWaypoints>::SharedPtr waypoints_server_;
 };
 
 struct ROSDisplayFactory : public reach::DisplayFactory
