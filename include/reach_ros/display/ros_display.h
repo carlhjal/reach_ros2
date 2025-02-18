@@ -16,6 +16,7 @@
 #ifndef REACH_ROS_ROS_REACH_DISPLAY_H
 #define REACH_ROS_ROS_REACH_DISPLAY_H
 
+#include "waypoint_server/srv/get_waypoints.hpp"
 #include <reach/interfaces/display.h>
 
 #include <rclcpp/publisher.hpp>

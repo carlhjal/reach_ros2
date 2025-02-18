@@ -56,26 +56,19 @@ ROSDisplay::ROSDisplay(std::string kinematic_base_frame, double marker_scale, bo
         "get_waypoints",
         std::bind(&ROSDisplay::getWaypointsCallback, this, std::placeholders::_1, std::placeholders::_2)
   );
+  // waypoints_server_ = std::make_shared<waypoint_server::srv::GetWaypoints>("eh",
+  //   reach_ros::utils::getNodeInstance());
 }
 
 void ROSDisplay::getWaypointsCallback(const std::shared_ptr<waypoint_server::srv::GetWaypoints::Request> request,
                           std::shared_ptr<waypoint_server::srv::GetWaypoints::Response> response)
 {
+  response->waypoints.clear();
   for (const auto &waypoint : waypoints_) {
-    // geometry_msgs::msg::Pose pose = Eigen::toMsg(waypoint);
     geometry_msgs::msg::Pose pose = tf2::toMsg(waypoint);
-    // geometry_msgs::msg::Pose pose;
-    // pose.position.x = waypoint.translation().x();
-    // pose.position.y = waypoint.translation().y();
-    // pose.position.z = waypoint.translation().z();
-    // Eigen::Quaterniond q(waypoint.rotation());
-    // pose.orientation.x = q.x();
-    // pose.orientation.y = q.y();
-    // pose.orientation.z = q.z();
-    // pose.orientation.w = q.w();
-
     response->waypoints.push_back(pose);
   }
+  RCLCPP_INFO(logger, "Returning %lu waypoints", waypoints_.size());
 }
 
 void ROSDisplay::showEnvironment() const
@@ -90,7 +83,7 @@ void ROSDisplay::updateRobotPose(const std::map<std::string, double>& pose) cons
                  [](const std::pair<const std::string, double>& pair) { return pair.first; });
   std::transform(pose.begin(), pose.end(), std::back_inserter(msg.position),
                  [](const std::pair<const std::string, double>& pair) { return pair.second; });
-
+                 
   joint_state_pub_->publish(msg);
 }
 
@@ -101,8 +94,11 @@ void ROSDisplay::showResults(const reach::ReachResult& db) const
   // Create a callback for when a marker is clicked on
   auto show_goal_cb = [this, db](const visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr& fb) {
     std::size_t idx = std::strtoul(fb->marker_name.c_str(), nullptr, 10);
-    auto test = db.at(idx).goal;
-    waypoints_.push_back(test);
+    static std::size_t last_clicked_idx = 4; 
+    if (last_clicked_idx != idx) {
+      waypoints_.push_back(db.at(idx).goal);
+    }
+    last_clicked_idx = idx;
     updateRobotPose(db.at(idx).goal_state);
   };
 
